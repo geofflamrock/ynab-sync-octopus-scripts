@@ -5,42 +5,25 @@ import {
   OfxTransactionParser,
   YnabTransactionImporter,
 } from "ynab-sync-core";
-import {
-  WestpacTransactionExporter,
-  WestpacTransactionExportInputs,
-} from "ynab-sync-westpac-au";
+import { WestpacTransactionExporter } from "ynab-sync-westpac-au";
+import commander from "commander";
 
-const exportTransactions = async () => {
-  const numberOfDaysToSync = parseInt(
-    process.env["Sync.Westpac.NumberOfDays"] ||
-      "#{Sync.Westpac.NumberOfDays}" ||
-      "7"
-  );
+export type WestpacTransactionExportParams = {
+  westpacUsername: string;
+  westpacPassword: string;
+  westpacAccountName: string;
+  numberOfDaysToSync: number;
+  debug: boolean;
+  ynabApiKey: string;
+  ynabBudgetId: string;
+  ynabAccountId: string;
+};
 
-  let startDate = subDays(new Date(), numberOfDaysToSync);
+export const exportTransactions = async (
+  params: WestpacTransactionExportParams
+) => {
+  let startDate = subDays(new Date(), params.numberOfDaysToSync);
 
-  let debug = false;
-
-  if (
-    (process.env["Sync.Westpac.Debug"] || "#{Sync.Westpac.Debug}" || "") ===
-    "true"
-  ) {
-    console.log("Running in debug mode");
-    debug = true;
-  }
-
-  const inputs: WestpacTransactionExportInputs = {
-    username:
-      process.env["Sync.Westpac.Username"] || "#{Sync.Westpac.Username}" || "",
-    password:
-      process.env["Sync.Westpac.Password"] || "#{Sync.Westpac.Password}" || "",
-    accountName:
-      process.env["Sync.Westpac.AccountName"] ||
-      "#{Sync.Westpac.AccountName}" ||
-      "",
-    startDate: startDate,
-    debug: debug,
-  };
   const exporter = new WestpacTransactionExporter();
 
   console.log(
@@ -50,22 +33,23 @@ const exportTransactions = async () => {
     )}'`
   );
 
-  const output = await exporter.export(inputs);
+  const output = await exporter.export({
+    username: params.westpacUsername,
+    password: params.westpacPassword,
+    accountName: params.westpacAccountName,
+    startDate: startDate,
+    debug: params.debug,
+  });
 
   console.log(`Transactions exported successfully to '${output.filePath}'`);
 
   console.log(`Parsing transactions from '${output.filePath}'`);
 
   const parser: ITransactionParser = new OfxTransactionParser({
-    debug: debug,
+    debug: params.debug,
   });
 
-  const transactions = parser.parse(
-    process.env["Sync.Westpac.YnabAccountId"] ||
-      "#{Sync.Westpac.YnabAccountId}" ||
-      "",
-    output.filePath
-  );
+  const transactions = parser.parse(params.ynabAccountId, output.filePath);
 
   console.log(
     `Parsed '${transactions.length}' transactions from '${output.filePath}'`
@@ -73,33 +57,46 @@ const exportTransactions = async () => {
 
   const importer: ITransactionImporter = new YnabTransactionImporter({
     credentials: {
-      apiKey:
-        process.env["Sync.Westpac.YnabApiKey"] ||
-        "#{Sync.Westpac.YnabApiKey}" ||
-        "",
+      apiKey: params.ynabApiKey,
     },
-    debug: debug,
+    debug: params.debug,
   });
 
   console.log(`Importing '${transactions.length}' transactions into YNAB`);
 
-  await importer.import(
-    process.env["Sync.Westpac.YnabBudgetId"] ||
-      "#{Sync.Westpac.YnabBudgetId}" ||
-      "",
-    transactions
-  );
+  await importer.import(params.ynabBudgetId, transactions);
 
   console.log(
     `Imported '${transactions.length}' transactions into YNAB successfully`
   );
 };
 
-exportTransactions()
-  .then(() => {
-    process.exit(0);
-  })
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
+export const createWestpacCommand = (): commander.Command => {
+  return new commander.Command("westpac")
+    .description("Sync Westpac transactions")
+    .requiredOption("-u, --westpac-username <username>", "Westpac username")
+    .requiredOption("-p, --westpac-password <password>", "Westpac password")
+    .requiredOption(
+      "--westpac-account-name  <account-name>",
+      "Name of Westpac account to sync from"
+    )
+    .option<number>(
+      "--number-of-days-to-sync <number-of-days-to-sync>",
+      "Numbers of days of transactions to sync",
+      (value: string) => parseInt(value),
+      7
+    )
+    .requiredOption("--ynab-api-key <ynab-api-key>", "YNAB Api key")
+    .requiredOption(
+      "--ynab-budget-id <ynab-budget-id>",
+      "Id of YNAB budget to import into"
+    )
+    .requiredOption(
+      "--ynab-account-id <ynab-account-id>",
+      "Id of YNAB account to import into"
+    )
+    .option("-d|--debug", "Whether to run in debug mode", false)
+    .action(async (args: WestpacTransactionExportParams) => {
+      await exportTransactions(args);
+    });
+};

@@ -1,32 +1,23 @@
 {
     "compilerOptions": {
+        "outDir": "bin",
+        "target": "ES5",
         "baseUrl": "src",
-        "module": "ES2020",
-        "moduleResolution": "node",
-        "target": "ES6",
-        "sourceMap": true,
-        "outDir": "dist",
-        "alwaysStrict": true,
-        "noImplicitAny": true,
-        "removeComments": true,
-        "preserveConstEnums": true,
-        "noImplicitThis": true,
-        "strictNullChecks": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "noUncheckedIndexedAccess": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
         "esModuleInterop": true,
-        "isolatedModules": true,
-        "importHelpers": false,
-        "rootDir": "./src"
+        "module": "CommonJS",
+        "lib": [
+            "es2015",
+            "dom"
+        ],
+        "strict": true,
+        "allowJs": true
     },
     "include": [
-        "src/**/*"
+        "src/index.ts"
     ],
     "exclude": [
         "node_modules",
+        "bin",
         "dist"
-    ],
+    ]
 }
