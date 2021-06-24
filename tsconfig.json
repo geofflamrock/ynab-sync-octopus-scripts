@@ -19,7 +19,8 @@
         "noUnusedParameters": true,
         "esModuleInterop": true,
         "isolatedModules": true,
-        "importHelpers": false
+        "importHelpers": false,
+        "rootDir": "./src"
     },
     "include": [
         "src/**/*"
