@@ -1,21 +1,22 @@
 {
   "name": "ynab-sync-octopus-scripts",
   "version": "1.0.0",
-  "description": "",
+  "description": "Scripts for syncing transactions to YNAB using Octopus Deploy",
   "scripts": {
     "build": "tsc"
   },
   "author": "Geoff Lamrock",
   "license": "ISC",
   "dependencies": {
-    "ynab-sync-westpac-au": "^0.0.4",
+    "commander": "^7.2.0",
+    "date-fns": "^2.22.1",
     "ynab-sync-core": "^0.0.5",
-    "date-fns": "^2.22.1"
+    "ynab-sync-westpac-au": "^0.0.4"
   },
   "devDependencies": {
     "@types/node": "^15.12.4",
     "tslib": "^2.3.0",
     "typescript": "^4.3.4"
   },
-  "type": "module"
+  "bin": "./bin/index.js"
 }
