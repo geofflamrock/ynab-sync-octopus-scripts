@@ -1,11 +1,11 @@
 import commander from "commander";
-import { createWestpacCommand } from "./westpac-au";
+import { createWestpacAuSyncCommand } from "./westpac-au";
 
 const program = new commander.Command();
 program
   .command("sync")
   .description("Sync transactions from banks to YNAB")
-  .addCommand(createWestpacCommand());
+  .addCommand(createWestpacAuSyncCommand());
 
 program
   .parseAsync(process.argv)

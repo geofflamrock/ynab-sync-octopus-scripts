@@ -1,4 +1,4 @@
-import { format, subDays } from "date-fns";
+import { format, isValid, parseISO, subDays } from "date-fns";
 import {
   ITransactionImporter,
   ITransactionParser,
@@ -13,6 +13,8 @@ export type WestpacTransactionExportParams = {
   westpacPassword: string;
   westpacAccountName: string;
   numberOfDaysToSync: number;
+  startDate?: Date;
+  endDate?: Date;
   debug: boolean;
   ynabApiKey: string;
   ynabBudgetId: string;
@@ -22,15 +24,25 @@ export type WestpacTransactionExportParams = {
 export const exportTransactions = async (
   params: WestpacTransactionExportParams
 ) => {
-  let startDate = subDays(new Date(), params.numberOfDaysToSync);
+  let endDate = undefined;
+
+  if (params.endDate !== undefined) {
+    endDate = params.endDate;
+  }
+
+  let startDate = subDays(endDate ?? new Date(), params.numberOfDaysToSync);
+
+  if (params.startDate !== undefined) {
+    startDate = params.startDate;
+  }
 
   const exporter = new WestpacTransactionExporter();
 
   console.log(
-    `Exporting westpac transactions with start date of '${format(
+    `Exporting westpac transactions with date range of '${format(
       startDate,
       "P"
-    )}'`
+    )}' to '${format(endDate ?? new Date(), "P")}'`
   );
 
   const output = await exporter.export({
@@ -38,6 +50,7 @@ export const exportTransactions = async (
     password: params.westpacPassword,
     accountName: params.westpacAccountName,
     startDate: startDate,
+    endDate: endDate,
     debug: params.debug,
   });
 
@@ -71,11 +84,11 @@ export const exportTransactions = async (
   );
 };
 
-export const createWestpacCommand = (): commander.Command => {
-  return new commander.Command("westpac")
-    .description("Sync Westpac transactions")
-    .requiredOption("-u, --westpac-username <username>", "Westpac username")
-    .requiredOption("-p, --westpac-password <password>", "Westpac password")
+export const createWestpacAuSyncCommand = (): commander.Command => {
+  return new commander.Command("westpac-au")
+    .description("Sync Westpac Australia transactions to YNAB")
+    .requiredOption("--westpac-username <username>", "Westpac username")
+    .requiredOption("--westpac-password <password>", "Westpac password")
     .requiredOption(
       "--westpac-account-name  <account-name>",
       "Name of Westpac account to sync from"
@@ -86,6 +99,32 @@ export const createWestpacCommand = (): commander.Command => {
       (value: string) => parseInt(value),
       7
     )
+    .option<Date>(
+      "--start-date <start-date>",
+      "Start date to sync from in ISO format (yyyy-MM-dd). If this is set then --number-of-days-to-sync is ignored.",
+      (value: string) => {
+        const date = parseISO(value);
+        if (!isValid(date))
+          throw new commander.InvalidOptionArgumentError(
+            "Date must be be in format 'yyyy-MM-dd'"
+          );
+        return date;
+      },
+      undefined
+    )
+    .option<Date>(
+      "--end-date <end-date>",
+      "End date to sync to in ISO format (yyyy-MM-dd). If this is set then --number-of-days-to-sync is taken from this date.",
+      (value: string) => {
+        const date = parseISO(value);
+        if (!isValid(date))
+          throw new commander.InvalidOptionArgumentError(
+            "Date must be be in format 'yyyy-MM-dd'"
+          );
+        return date;
+      },
+      undefined
+    )
     .requiredOption("--ynab-api-key <ynab-api-key>", "YNAB Api key")
     .requiredOption(
       "--ynab-budget-id <ynab-budget-id>",
@@ -95,7 +134,7 @@ export const createWestpacCommand = (): commander.Command => {
       "--ynab-account-id <ynab-account-id>",
       "Id of YNAB account to import into"
     )
-    .option("-d|--debug", "Whether to run in debug mode", false)
+    .option("--debug", "Whether to run in debug mode", false)
     .action(async (args: WestpacTransactionExportParams) => {
       await exportTransactions(args);
     });
