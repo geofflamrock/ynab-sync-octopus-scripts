@@ -15,6 +15,7 @@ export type WestpacTransactionExportParams = {
   numberOfDaysToSync: number;
   startDate?: Date;
   endDate?: Date;
+  importIdTemplate?: string;
   debug: boolean;
   ynabApiKey: string;
   ynabBudgetId: string;
@@ -59,6 +60,7 @@ export const exportTransactions = async (
   console.log(`Parsing transactions from '${output.filePath}'`);
 
   const parser: ITransactionParser = new OfxTransactionParser({
+    importIdTemplate: params.importIdTemplate,
     debug: params.debug,
   });
 
@@ -77,10 +79,13 @@ export const exportTransactions = async (
 
   console.log(`Importing '${transactions.length}' transactions into YNAB`);
 
-  await importer.import(params.ynabBudgetId, transactions);
+  const importResults = await importer.import(
+    params.ynabBudgetId,
+    transactions
+  );
 
   console.log(
-    `Imported '${transactions.length}' transactions into YNAB successfully`
+    `Imported '${transactions.length}' transactions into YNAB successfully: ${importResults.transactionsCreated.length} created, ${importResults.transactionsUpdated.length} updated, ${importResults.transactionsUnchanged.length} not changed`
   );
 };
 
@@ -124,6 +129,11 @@ export const createWestpacAuSyncCommand = (): commander.Command => {
         return date;
       },
       undefined
+    )
+    .option(
+      "--import-id-template  <import-id-template>",
+      "Template to use when constructing the import id. Properties available are {id}, {date}, {amount} and {memo}. Defaults to {id}.",
+      "{id}"
     )
     .requiredOption("--ynab-api-key <ynab-api-key>", "YNAB Api key")
     .requiredOption(
