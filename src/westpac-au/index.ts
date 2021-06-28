@@ -16,6 +16,7 @@ export type WestpacTransactionExportParams = {
   startDate?: Date;
   endDate?: Date;
   importIdTemplate?: string;
+  downloadDirectory?: string;
   debug: boolean;
   ynabApiKey: string;
   ynabBudgetId: string;
@@ -52,6 +53,7 @@ export const exportTransactions = async (
     accountName: params.westpacAccountName,
     startDate: startDate,
     endDate: endDate,
+    downloadDirectory: params.downloadDirectory,
     debug: params.debug,
   });
 
@@ -131,9 +133,13 @@ export const createWestpacAuSyncCommand = (): commander.Command => {
       undefined
     )
     .option(
-      "--import-id-template  <import-id-template>",
+      "--import-id-template <import-id-template>",
       "Template to use when constructing the import id. Properties available are {id}, {date}, {amount} and {memo}. Defaults to {id}.",
       "{id}"
+    )
+    .option(
+      "--download-directory <download-directory>",
+      "Directory to use when downloading transaction files"
     )
     .requiredOption("--ynab-api-key <ynab-api-key>", "YNAB Api key")
     .requiredOption(
